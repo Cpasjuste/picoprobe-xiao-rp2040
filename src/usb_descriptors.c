@@ -47,12 +47,8 @@ tusb_desc_device_t const desc_device =
     .bMaxPacketSize0    = CFG_TUD_ENDPOINT0_SIZE,
 
     .idVendor           = 0x2E8A, // Pi
-#if (PICOPROBE_DEBUG_PROTOCOL == PROTO_OPENOCD_CUSTOM)
-    .idProduct          = 0x0004, // Picoprobe
-#else
-    .idProduct          = 0x000c, // CMSIS-DAP adapter
-#endif
-    .bcdDevice          = 0x0101, // Version 01.01
+    .idProduct          = 0x000c, // CMSIS-DAP Debug Probe
+    .bcdDevice          = 0x0103, // Version 01.03
     .iManufacturer      = 0x01,
     .iProduct           = 0x02,
     .iSerialNumber      = 0x03,
@@ -103,7 +99,7 @@ uint8_t const * tud_hid_descriptor_report_cb(uint8_t itf)
 
 uint8_t const desc_configuration[] =
 {
-  TUD_CONFIG_DESCRIPTOR(1, ITF_NUM_TOTAL, 0, CONFIG_TOTAL_LEN, TUSB_DESC_CONFIG_ATT_REMOTE_WAKEUP, 100),
+  TUD_CONFIG_DESCRIPTOR(1, ITF_NUM_TOTAL, 0, CONFIG_TOTAL_LEN, 0, 100),
   // Interface 0
 #if (PICOPROBE_DEBUG_PROTOCOL == PROTO_DAP_V1)
   // HID (named interface)
@@ -137,11 +133,11 @@ char const* string_desc_arr [] =
 {
   (const char[]) { 0x09, 0x04 }, // 0: is supported language is English (0x0409)
   "Raspberry Pi", // 1: Manufacturer
-  "Picoprobe CMSIS-DAP", // 2: Product
+  PROBE_PRODUCT_STRING, // 2: Product
   usb_serial,     // 3: Serial, uses flash unique ID
-  "Picoprobe CMSIS-DAP v1", // 4: Interface descriptor for HID transport
-  "Picoprobe CMSIS-DAP v2", // 5: Interface descriptor for Bulk transport
-  "Picoprobe CDC-ACM UART", // 6: Interface descriptor for CDC
+  "CMSIS-DAP v1 Interface", // 4: Interface descriptor for HID transport
+  "CMSIS-DAP v2 Interface", // 5: Interface descriptor for Bulk transport
+  "CDC-ACM UART Interface", // 6: Interface descriptor for CDC
 };
 
 static uint16_t _desc_str[32];

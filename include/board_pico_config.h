@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2021 Raspberry Pi (Trading) Ltd.
+ * Copyright (c) 2023 Raspberry Pi (Trading) Ltd.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,30 +23,30 @@
  *
  */
 
-#ifndef PROBE_H_
-#define PROBE_H_
+#ifndef BOARD_PICO_H_
+#define BOARD_PICO_H_
 
-#if defined(PROBE_IO_RAW) || defined(PROBE_IO_SWDI)
-#include "probe.pio.h"
+#define PROBE_IO_RAW
+#define PROBE_CDC_UART
+
+// PIO config
+#define PROBE_SM 0
+#define PROBE_PIN_OFFSET 2
+#define PROBE_PIN_SWCLK (PROBE_PIN_OFFSET + 0) // 2
+#define PROBE_PIN_SWDIO (PROBE_PIN_OFFSET + 1) // 3
+// Target reset config
+#if false
+#define PROBE_PIN_RESET 1
 #endif
 
-#if defined(PROBE_IO_OEN)
-#include "probe_oen.pio.h"
-#endif
+// UART config
+#define PICOPROBE_UART_TX 0
+#define PICOPROBE_UART_RX 1
+#define PICOPROBE_UART_INTERFACE uart0
+#define PICOPROBE_UART_BAUDRATE 115200
 
-void probe_set_swclk_freq(uint freq_khz);
+#define PICOPROBE_USB_CONNECTED_LED 25
 
-// Bit counts in the range 1..256
-void probe_write_bits(uint bit_count, uint32_t data_byte);
-uint32_t probe_read_bits(uint bit_count);
-void probe_hiz_clocks(uint bit_count);
-
-void probe_read_mode(void);
-void probe_write_mode(void);
-
-void probe_init(void);
-void probe_deinit(void);
-void probe_assert_reset(bool state);
-int probe_reset_level(void);
+#define PROBE_PRODUCT_STRING "Picoprobe (CMSIS-DAP)"
 
 #endif

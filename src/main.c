@@ -39,6 +39,7 @@
 #include "cdc_uart.h"
 #include "get_serial.h"
 #include "led.h"
+#include "tusb_edpt_handler.h"
 #include "DAP.h"
 
 // UART0 for Picoprobe debug
@@ -53,14 +54,23 @@ static uint8_t RxDataBuffer[CFG_TUD_HID_EP_BUFSIZE];
 #define TUD_TASK_PRIO  (tskIDLE_PRIORITY + 2)
 #define DAP_TASK_PRIO  (tskIDLE_PRIORITY + 1)
 
-static TaskHandle_t dap_taskhandle, tud_taskhandle;
+TaskHandle_t dap_taskhandle, tud_taskhandle;
 
 void usb_thread(void *ptr)
 {
+    TickType_t wake;
+    wake = xTaskGetTickCount();
     do {
         tud_task();
-        // Trivial delay to save power
-        vTaskDelay(1);
+#ifdef PICOPROBE_USB_CONNECTED_LED
+        if (!gpio_get(PICOPROBE_USB_CONNECTED_LED) && tud_ready())
+            gpio_put(PICOPROBE_USB_CONNECTED_LED, 1);
+        else
+            gpio_put(PICOPROBE_USB_CONNECTED_LED, 0);
+#endif
+        // Go to sleep for up to a tick if nothing to do
+        if (!tud_task_event_ready())
+            xTaskDelayUntil(&wake, 1);
     } while (1);
 }
 
@@ -69,35 +79,16 @@ void usb_thread(void *ptr)
 #define tud_vendor_flush(x) ((void)0)
 #endif
 
-void dap_thread(void *ptr)
-{
-    uint32_t resp_len;
-    do {
-        if (tud_vendor_available()) {
-            tud_vendor_read(RxDataBuffer, sizeof(RxDataBuffer));
-            resp_len = DAP_ProcessCommand(RxDataBuffer, TxDataBuffer);
-            tud_vendor_write(TxDataBuffer, resp_len);
-            tud_vendor_flush();
-        } else {
-            // Trivial delay to save power
-            vTaskDelay(2);
-        }
-    } while (1);
-}
-
 int main(void) {
-    uint32_t resp_len;
 
     board_init();
     usb_serial_init();
     cdc_uart_init();
     tusb_init();
-#if (PICOPROBE_DEBUG_PROTOCOL == PROTO_OPENOCD_CUSTOM)
-    probe_gpio_init();
-    probe_init();
-#else
+
     DAP_Setup();
-#endif
+    stdio_uart_init();
+
     led_init();
 
     picoprobe_info("Welcome to Picoprobe!\n");
@@ -114,11 +105,10 @@ int main(void) {
     while (!THREADED) {
         tud_task();
         cdc_task();
-#if (PICOPROBE_DEBUG_PROTOCOL == PROTO_OPENOCD_CUSTOM)
-        probe_task();
-        led_task();
-#elif (PICOPROBE_DEBUG_PROTOCOL == PROTO_DAP_V2)
+
+#if (PICOPROBE_DEBUG_PROTOCOL == PROTO_DAP_V2)
         if (tud_vendor_available()) {
+            uint32_t resp_len;
             tud_vendor_read(RxDataBuffer, sizeof(RxDataBuffer));
             resp_len = DAP_ProcessCommand(RxDataBuffer, TxDataBuffer);
             tud_vendor_write(TxDataBuffer, resp_len);
